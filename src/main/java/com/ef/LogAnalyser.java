@@ -5,14 +5,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
 
+import org.hibernate.Session;
+
+import com.ef.libs.HibernateUtil;
 import com.ef.libs.Utils;
 import com.ef.schema.LogEntity;
 
@@ -21,62 +23,65 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class LogAnalyser {
+
   private static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
   private static short LOG_PATTERN_LENGTH = 5;
   private static String SEPARATOR = "\\|";
 
-
-  private ArrayList<LogEntity> results;
+  private ArrayList<LogEntity> logs;
+  private Session session;
 
   public LogAnalyser() {
-    this.results = new ArrayList<LogEntity>();
+    logs = new ArrayList<>();
+    session = HibernateUtil.getSessionFactory().openSession();
   }
 
 
   @SneakyThrows(value = {FileNotFoundException.class, IOException.class})
   public void run(String filePath, LocalDateTime start, LocalDateTime end, int threshold) {
-    System.err.println("hello");
+    log.info("Reading file - {}", filePath);
+
     Path path = Paths.get(filePath);
+    log.debug("File found");
 
-    StringBuilder data = new StringBuilder();
     Stream<String> lines = Files.lines(path);
-    // AtomicInteger i = new AtomicInteger(10);
     HashMap<String, Integer> ipTrackers = new HashMap<>();
-    HashSet<LocalDate> st = new HashSet<>();
-    try {
-      lines.forEach(line -> {
-        LogEntity lg = parseEntry(line);
-        results.add(lg);
-        st.add(lg.getStartDate().toLocalDate());
-        if(lg.getStartDate().isAfter(start) && lg.getStartDate().isBefore(end)){
-          ipTrackers.put(lg.getIpAddress(), ipTrackers.getOrDefault(lg.getIpAddress(), 0) + 1);
-        }
-        // i.getAndDecrement();
-        // if(i.get() == 0){ throw new RuntimeException("done"); };
-      });
-    } catch (Exception e) {
-       log.error("Broken !!!!");
-    }
-    log.error("Set size {}", st.size());
-    lines.close();
-    System.err.println(results.size());
-   
-    for (Entry<String, Integer> entry : ipTrackers.entrySet())
-    {
-        if(entry.getValue() >= threshold){
-          log.info(entry.getKey());
-        }
-      //log.info(entry.getKey() + "=" + entry.getValue());
-    }
-    
 
+    lines.forEach(line -> {
+      LogEntity l = parseEntry(line);
+      logs.add(l);
+      if (l.getStartDate().isAfter(start) && l.getStartDate().isBefore(end)) {
+        ipTrackers.put(l.getIpAddress(), ipTrackers.getOrDefault(l.getIpAddress(), 0) + 1);
+      }
+
+      saveToDatabase(l);
+
+    });
+    lines.close();
+
+    log.debug("Total {} lines found", logs.size());
+
+    List<String> results = new ArrayList<String>();
+    for (Entry<String, Integer> entry : ipTrackers.entrySet()) {
+      if (entry.getValue() >= threshold) {
+        results.add(entry.getKey());
+      }
+    }
+
+    log.info("Results - {}", results);
+    session.close();
   }
 
+  public void saveToDatabase(LogEntity l) {
 
-  // log format:
-  // 2017-01-01 04:24:43.059|192.168.89.111|"GET / HTTP/1.1"|200|
-  // "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko)
-  // Chrome/61.0.3163.79 Safari/537.36"
+    session.beginTransaction();
+    session.saveOrUpdate(l);
+    session.getTransaction().commit();
+    session.close();
+
+    HibernateUtil.shutdown();
+  }
+
   public static LogEntity parseEntry(String line) {
 
     LogEntity entity = null;
@@ -89,8 +94,8 @@ public class LogAnalyser {
       entity.setMethodType(info[2]);
       entity.setStatus(Integer.parseInt(info[3]));
       entity.setUserAgent(info[4]);
-    }else{
-      System.err.println("missed - " + line );
+    } else {
+      log.error("Invalid log pattern - {}", line);
     }
 
     return entity;
