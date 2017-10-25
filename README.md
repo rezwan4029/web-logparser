@@ -10,6 +10,6 @@ mvn clean package
 ```
 Run command :
 ```bash
-java -cp "parser.jar" com.ef.Parser --accesslog=/Users/rezwan/Documents/monstar-lab/parser/src/main/resources/access.log --startDate=2017-01-01.15:00:00 --duration=hourly --threshold=200
+java -cp "parser.jar" com.ef.Parser --accesslog=src/main/resources/access.log --startDate=2017-01-01.15:00:00 --duration=hourly --threshold=200
 
 ```
