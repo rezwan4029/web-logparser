@@ -10,8 +10,9 @@
 		<property name="hibernate.connection.password"></property>
 		<property name="hibernate.connection.url">jdbc:mysql://127.0.0.1/parser?createDatabaseIfNotExist=true</property>
 		<property name="hibernate.dialect">org.hibernate.dialect.MySQLInnoDBDialect</property>
-		<property name="show_sql">true</property>
-		<property name="connection.pool_size">1</property>
+		<property name="show_sql">false</property>
+		<property name="connection.pool_size">10</property>
+		<property name=" hibernate.jdbc.batch_size">100</property>
 
 		<mapping class="com.ef.schema.LogEntity"></mapping>
 

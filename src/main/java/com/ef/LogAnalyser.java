@@ -8,11 +8,13 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import org.hibernate.Session;
+import org.hibernate.Transaction;
 
 import com.ef.libs.HibernateUtil;
 import com.ef.libs.Utils;
@@ -28,11 +30,11 @@ public class LogAnalyser {
   private static short LOG_PATTERN_LENGTH = 5;
   private static String SEPARATOR = "\\|";
 
-  private ArrayList<LogEntity> logs;
   private Session session;
 
+  private static short BATCH_SIZE = 100;
+
   public LogAnalyser() {
-    logs = new ArrayList<>();
     session = HibernateUtil.getSessionFactory().openSession();
   }
 
@@ -46,40 +48,51 @@ public class LogAnalyser {
 
     Stream<String> lines = Files.lines(path);
     HashMap<String, Integer> ipTrackers = new HashMap<>();
+    HashSet<String> results = new HashSet<>();
+    AtomicInteger totalLog = new AtomicInteger(0);
 
+    List<LogEntity> dbUpdateList = new ArrayList<>();
+    Transaction transaction = session.beginTransaction();
     lines.forEach(line -> {
       LogEntity l = parseEntry(line);
-      logs.add(l);
+      dbUpdateList.add(l);
       if (l.getStartDate().isAfter(start) && l.getStartDate().isBefore(end)) {
         ipTrackers.put(l.getIpAddress(), ipTrackers.getOrDefault(l.getIpAddress(), 0) + 1);
+        if (ipTrackers.get(l.getIpAddress()) > threshold) {
+          results.add(l.getIpAddress());
+        }
+      }
+      totalLog.incrementAndGet();
+      if (dbUpdateList.size() % BATCH_SIZE == 0) {
+        saveToDatabase(dbUpdateList);
       }
 
-      saveToDatabase(l);
 
     });
     lines.close();
 
-    log.debug("Total {} lines found", logs.size());
+    saveToDatabase(dbUpdateList);
 
-    List<String> results = new ArrayList<String>();
-    for (Entry<String, Integer> entry : ipTrackers.entrySet()) {
-      if (entry.getValue() >= threshold) {
-        results.add(entry.getKey());
-      }
-    }
+    log.debug("Total {} lines found", totalLog);
 
     log.info("Results - {}", results);
+    transaction.commit();
     session.close();
+    HibernateUtil.shutdown();
   }
 
-  public void saveToDatabase(LogEntity l) {
+  public void saveToDatabase(List<LogEntity> entities) {
 
-    session.beginTransaction();
-    session.saveOrUpdate(l);
-    session.getTransaction().commit();
-    session.close();
+    if (entities.isEmpty()) {
+      return;
+    }
 
-    HibernateUtil.shutdown();
+    for (LogEntity logEntity : entities) {
+      session.persist(logEntity);
+    }
+    entities.clear();
+    session.flush();
+    session.clear();
   }
 
   public static LogEntity parseEntry(String line) {

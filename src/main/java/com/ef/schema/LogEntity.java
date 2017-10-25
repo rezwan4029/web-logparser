@@ -35,7 +35,7 @@ public class LogEntity implements Serializable {
   private LocalDateTime startDate;
 
   private int status;
-  
+
   @Column(name = "method_type")
   private String methodType;
 
