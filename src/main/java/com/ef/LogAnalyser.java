@@ -47,11 +47,11 @@ public class LogAnalyser {
     log.debug("File found");
 
     Stream<String> lines = Files.lines(path);
-    HashMap<String, Integer> ipTrackers = new HashMap<>();
-    HashSet<String> results = new HashSet<>();
+    HashMap<String, Integer> ipTrackers = new HashMap<String, Integer>();
+    HashSet<String> results = new HashSet<String>();
     AtomicInteger totalLog = new AtomicInteger(0);
 
-    List<LogEntity> dbUpdateList = new ArrayList<>();
+    List<LogEntity> dbUpdateList = new ArrayList<LogEntity>();
     Transaction transaction = session.beginTransaction();
     lines.forEach(line -> {
       LogEntity l = parseEntry(line);

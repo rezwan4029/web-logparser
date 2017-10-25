@@ -9,7 +9,7 @@ import java.util.Map;
 public class Utils {
 
   public static Map<String, String> argumentParser(String args[]) {
-    final Map<String, String> params = new HashMap<>();
+    final Map<String, String> params = new HashMap<String, String>();
     for (int i = 0; i < args.length; i++) {
       String keyValue[] = args[i].split("=");
       if (keyValue.length == 2 && keyValue[0].startsWith("--")) {
