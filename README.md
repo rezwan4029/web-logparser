@@ -1,6 +1,5 @@
-# tokup-scheduler
-Job scheduling for various features of Toku-P
-
+# web-logparser
+Log parsing application
 
 Steps to run 
 -------------
@@ -9,17 +8,8 @@ Build project :
 ```bash 
 mvn clean package
 ```
-
-Run particular task : 
-```bash 
-java -cp target/tokup-shceduler.jar com.tokup.scheduler.tasks.reservationreminder.Task >> log/reservationreminder.log 2 >&1 
-```
-
-To add in crontab:
-* Edit the crontab  `crontab -e`
-* Write needed java command as a task. Here for example write 
+Run command :
 ```bash
-java -cp target/tokup-shceduler.jar com.tokup.scheduler.tasks.reservationreminder.Task >> log/reservationreminder.log 2 >&1 
+java -cp "parser.jar" com.ef.Parser --accesslog=/Users/rezwan/Documents/monstar-lab/parser/src/main/resources/access.log --startDate=2017-01-01.15:00:00 --duration=hourly --threshold=200
+
 ```
-* To disable any cron task, comment that line by putting `#` at starting of line. 
-* To view existing cron tasks. `crontab -l`
