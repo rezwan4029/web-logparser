@@ -1,6 +1,4 @@
---liquibase formatted sql
---changeset rezwanul:parser database
---comment Create logparser table
+CREATE DATABASE `parser`;
 
 CREATE TABLE IF NOT EXISTS `logparser` (
   `id` INT NOT NULL AUTO_INCREMENT,

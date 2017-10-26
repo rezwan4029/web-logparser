@@ -14,6 +14,9 @@ java -cp "parser.jar" com.ef.Parser --accesslog=src/main/resources/access.log --
 
 ```
 
+## Create database
+Create database `parser` using [SQL](https://github.com/rezwan4029/web-logparser/blob/master/src/main/resources/sql/create_database.sql)
+
 ## SQL problems
 
 [Solution 1](https://github.com/rezwan4029/web-logparser/blob/master/src/main/resources/sql/sql_solution_1.sql)
